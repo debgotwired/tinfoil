@@ -26,11 +26,12 @@ async function searchFirecrawl(query: string, limit = 5) {
   try {
     const result = await firecrawl.search(query, { limit });
     if (result.success && result.data) {
-      return result.data.map((doc) => ({
-        title: sanitize(doc.metadata?.title || doc.metadata?.ogTitle || extractTitleFromUrl(doc.url || "")),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return result.data.map((doc: any) => ({
+        title: sanitize(doc.title || doc.metadata?.title || doc.metadata?.ogTitle || extractTitleFromUrl(doc.url || "")),
         url: doc.url || doc.metadata?.sourceURL || doc.metadata?.ogUrl || "",
-        description: sanitize(doc.metadata?.description || doc.metadata?.ogDescription || (doc.markdown ? doc.markdown.slice(0, 200) : "")),
-        markdown: sanitize(doc.markdown || ""),
+        description: sanitize(doc.description || doc.metadata?.description || doc.metadata?.ogDescription || (doc.markdown ? doc.markdown.slice(0, 200) : "")),
+        markdown: sanitize(doc.markdown || doc.description || ""),
       }));
     }
     return [];
