@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import FirecrawlApp from "@mendable/firecrawl-js";
 import { checkRateLimit } from "../rate-limit";
 
-const firecrawl = new FirecrawlApp({
-  apiKey: process.env.FIRECRAWL_API_KEY!,
-});
+let _firecrawl: FirecrawlApp | null = null;
+function getFirecrawl() {
+  if (!_firecrawl) {
+    _firecrawl = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY! });
+  }
+  return _firecrawl;
+}
 
 // Strip control characters that break JSON
 function sanitize(s: string): string {
@@ -22,9 +26,11 @@ function extractTitleFromUrl(url: string): string {
   }
 }
 
+const searchErrors: string[] = [];
+
 async function searchFirecrawl(query: string, limit = 5) {
   try {
-    const result = await firecrawl.search(query, { limit });
+    const result = await getFirecrawl().search(query, { limit });
     if (result.success && result.data) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return result.data.map((doc: any) => ({
@@ -34,8 +40,11 @@ async function searchFirecrawl(query: string, limit = 5) {
         markdown: sanitize(doc.markdown || doc.description || ""),
       }));
     }
+    searchErrors.push(`"${query}": no success (${JSON.stringify(result).slice(0, 200)})`);
     return [];
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    searchErrors.push(`"${query}": ${msg}`);
     console.error(`Search failed for "${query}":`, err);
     return [];
   }
@@ -122,6 +131,7 @@ export async function POST(req: NextRequest) {
       sources: allSources,
       brief,
       sourceCount: allSources.length,
+      ...(searchErrors.length > 0 && { _debug: { errors: searchErrors, keySet: !!process.env.FIRECRAWL_API_KEY, keyPrefix: (process.env.FIRECRAWL_API_KEY || "").slice(0, 6) } }),
     });
   } catch (err) {
     console.error("Research failed:", err);
