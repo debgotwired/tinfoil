@@ -12,4 +12,10 @@ export default defineConfig({
   },
   retries: 0,
   reporter: "list",
+  webServer: {
+    command: "npm run dev -- -p 3002",
+    port: 3002,
+    reuseExistingServer: true,
+    timeout: 60_000,
+  },
 });
