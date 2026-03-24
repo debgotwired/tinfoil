@@ -41,8 +41,9 @@ function addRedactions(text: string): (string | { redacted: string })[] {
 
 function parseCitations(text: string): { clean: string; urls: string[] } {
   const urls: string[] = [];
-  const clean = text.replace(/\[CITE:\s*(https?:\/\/[^\]]+)\]/g, (_, url) => {
-    urls.push(url.trim());
+  // Match all [CITE: ...] patterns — full URLs, domains, or any reference
+  const clean = text.replace(/\[CITE:\s*([^\]]+)\]/gi, (_, ref) => {
+    urls.push(ref.trim());
     return "";
   });
   return { clean: clean.replace(/\s{2,}/g, " ").trim(), urls };
