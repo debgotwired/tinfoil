@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import FirecrawlApp from "@mendable/firecrawl-js";
+import { checkRateLimit } from "../rate-limit";
 
 const firecrawl = new FirecrawlApp({
   apiKey: process.env.FIRECRAWL_API_KEY!,
@@ -40,6 +41,10 @@ async function searchFirecrawl(query: string, limit = 5) {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limit: 3 investigations per IP per day
+  const rateLimited = checkRateLimit(req);
+  if (rateLimited) return rateLimited;
+
   try {
     const { topicA, topicB } = await req.json();
 

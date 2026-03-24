@@ -230,7 +230,13 @@ export function ConspiracyBoard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topicA: topicA.trim(), topicB: topicB.trim() }),
       });
-      if (!researchRes.ok) throw new Error("Firecrawl research failed");
+      if (!researchRes.ok) {
+        if (researchRes.status === 429) {
+          const body = await researchRes.json().catch(() => null);
+          throw new Error(body?.message || "You've used all 3 investigations for today. Come back tomorrow for more conspiracies...");
+        }
+        throw new Error("Firecrawl research failed");
+      }
       const data: ResearchResult = await researchRes.json();
       setResearch(data);
 
@@ -283,10 +289,20 @@ export function ConspiracyBoard() {
                   setRawTranscript((prev) => [...prev, clean]);
                   completedParagraphs.push(clean);
                 }
-                for (const url of urls) {
-                  const matchedSource = data.sources.find(
-                    (s) => url.includes(s.url) || s.url.includes(url)
-                  );
+                for (const cite of urls) {
+                  // Match citation against sources — handle full URLs, domains, or partial matches
+                  const matchedSource = data.sources.find((s) => {
+                    const citeLower = cite.toLowerCase();
+                    const srcLower = s.url.toLowerCase();
+                    // Direct substring match (either direction)
+                    if (srcLower.includes(citeLower) || citeLower.includes(srcLower)) return true;
+                    // Domain match: extract domain from source URL and compare
+                    try {
+                      const srcDomain = new URL(s.url).hostname.replace("www.", "");
+                      if (srcDomain.includes(citeLower) || citeLower.includes(srcDomain)) return true;
+                    } catch { /* not a valid URL */ }
+                    return false;
+                  });
                   if (matchedSource) {
                     setCitedSources((prev) =>
                       prev.some((s) => s.url === matchedSource.url) ? prev : [...prev, matchedSource]
