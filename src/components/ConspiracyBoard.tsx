@@ -819,9 +819,16 @@ export function ConspiracyBoard() {
         </div>
 
         {/* ═══ FOOTER ═══ */}
-        <footer className="flex-shrink-0 px-5 py-1.5 bg-dark/90 border-t border-border flex items-center justify-between">
-          <span className="font-mono text-[7px] text-muted/20 tracking-[0.2em]">TINFOIL v0.2 // UNCLASSIFIED</span>
-          <span className="font-mono text-[7px] text-muted/20 tracking-[0.2em]">FIRECRAWL + OPENAI + ELEVENLABS // #ELEVENHACKS 2026</span>
+        <footer className="flex-shrink-0 px-5 py-1.5 bg-dark/90 border-t border-border">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[7px] text-muted/20 tracking-[0.2em]">TINFOIL v0.2 // UNCLASSIFIED</span>
+            <span className="font-mono text-[7px] text-muted/20 tracking-[0.2em]">FIRECRAWL + OPENAI + ELEVENLABS // #ELEVENHACKS 2026</span>
+          </div>
+          <p className="font-mono text-[6px] text-muted/15 tracking-wider mt-0.5 text-center">
+            SATIRE ONLY — All conspiracies are AI-generated fiction. Sources are real, interpretations are intentionally absurd. Built for{" "}
+            <a href="https://hacks.elevenlabs.io/hackathons/0" target="_blank" rel="noopener noreferrer" className="underline hover:text-muted/30">ElevenHacks 2026</a>.
+            Not misinformation.
+          </p>
         </footer>
       </div>
     </div>
