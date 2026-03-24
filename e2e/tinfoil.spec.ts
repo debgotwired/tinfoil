@@ -20,6 +20,7 @@ test.describe("Tinfoil E2E", () => {
     await expect(page.getByText("Intel Feed / Anomaly Reports")).toBeVisible();
     await expect(page.getByText("Operations")).toBeVisible();
     await expect(page.getByText("TINFOIL v0.2")).toBeVisible();
+    await expect(page.getByText("@debgotwired")).toBeVisible();
     await expect(page.getByText("#ELEVENHACKS 2026")).toBeVisible();
   });
 

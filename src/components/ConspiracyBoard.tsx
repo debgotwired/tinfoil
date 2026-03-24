@@ -467,12 +467,12 @@ export function ConspiracyBoard() {
     <div className="crt-frame">
       <div className="h-dvh flex flex-col overflow-hidden ambient-flicker vignette">
         {/* ═══ TOP BAR ═══ */}
-        <header className="dossier-header flex-shrink-0 flex items-center justify-between px-5 py-2.5">
-          <div className="flex items-center gap-5">
-            <h1 className="font-display text-lg tracking-[0.25em] text-bright uppercase">
+        <header className="dossier-header flex-shrink-0 flex items-center justify-between px-3 py-2 md:px-5 md:py-2.5">
+          <div className="flex items-center gap-2 md:gap-5 min-w-0">
+            <h1 className="font-display text-sm md:text-lg tracking-[0.25em] text-bright uppercase whitespace-nowrap">
               Project: <span className="redacted">TINFOIL</span>
             </h1>
-            <div className="stamp-large">CLASSIFIED</div>
+            <div className="stamp-large hidden sm:block">CLASSIFIED</div>
             {(phase === "broadcasting" || isPlaying) && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -484,15 +484,15 @@ export function ConspiracyBoard() {
               </motion.div>
             )}
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className={`w-2.5 h-2.5 rounded-full ${
+          <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+            <div className="flex items-center gap-1.5 md:gap-2">
+              <div className={`w-2 h-2 md:w-2.5 md:h-2.5 rounded-full ${
                 phase === "broadcasting" || isPlaying ? "bg-phosphor-bright led-pulse text-phosphor-bright" :
                 phase === "generating" ? "bg-yellow-500 animate-pulse" :
                 phase === "researching" ? "bg-yellow-500 animate-pulse" :
                 "bg-muted/40"
               }`} />
-              <span className="font-mono text-[9px] tracking-[0.15em] text-dim uppercase">
+              <span className="font-mono text-[8px] md:text-[9px] tracking-[0.15em] text-dim uppercase">
                 {isPlaying ? "TX Active" :
                  phase === "broadcasting" ? "Buffering" :
                  phase === "generating" ? "Generating Intel" :
@@ -501,12 +501,12 @@ export function ConspiracyBoard() {
                  "Awaiting Input"}
               </span>
             </div>
-            <span className="font-mono text-[8px] text-muted/30 tracking-[0.15em]">HACKATHON 20XX — INTEL v0.1 ALPHA</span>
+            <span className="font-mono text-[8px] text-muted/30 tracking-[0.15em] hidden md:inline">HACKATHON 20XX — INTEL v0.1 ALPHA</span>
           </div>
         </header>
 
         {/* ═══ SYSTEM STATUS BAR ═══ */}
-        <div className="flex-shrink-0 px-5 py-1 bg-dark/80 border-b border-border flex items-center gap-4 overflow-hidden">
+        <div className="flex-shrink-0 px-3 py-1 md:px-5 bg-dark/80 border-b border-border flex items-center gap-2 md:gap-4 overflow-hidden">
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-phosphor-dim led-blink" />
             <span className="font-mono text-[7px] text-muted/50 tracking-wider">SYS</span>
@@ -534,7 +534,7 @@ export function ConspiracyBoard() {
         <div className="flex-1 flex min-h-0">
 
           {/* ─── LEFT: EVIDENCE BOARD ─── */}
-          <div className="w-[300px] flex-shrink-0 flex flex-col border-r border-border cork-bg">
+          <div className="hidden lg:flex w-[300px] flex-shrink-0 flex-col border-r border-border cork-bg">
             <div className="px-4 py-2 border-b border-black/20">
               <h2 className="font-display text-[11px] tracking-[0.2em] text-bright/70 uppercase">Key Evidence</h2>
               <div className="font-mono text-[7px] text-muted/40 mt-0.5">
@@ -568,8 +568,8 @@ export function ConspiracyBoard() {
           {/* ─── CENTER: INTEL FEED ─── */}
           <div className="flex-1 flex flex-col min-w-0 relative">
             {/* Input area */}
-            <div className="flex-shrink-0 px-6 py-5 border-b border-border bg-dark/80">
-              <div className="flex items-end gap-4 max-w-2xl">
+            <div className="flex-shrink-0 px-3 py-3 md:px-6 md:py-5 border-b border-border bg-dark/80">
+              <div className="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-4 max-w-2xl">
                 <div className="flex-1">
                   <label htmlFor="subject-a" className="block font-display text-[10px] text-dim tracking-[0.2em] mb-1.5 uppercase">Subject A</label>
                   <input
@@ -579,7 +579,7 @@ export function ConspiracyBoard() {
                     className="w-full bg-void/60 border border-border-active text-bright font-display text-base tracking-wide px-3 py-2.5 placeholder:text-muted/15 focus:outline-none focus:border-phosphor-dim/60 transition-colors disabled:opacity-20"
                   />
                 </div>
-                <div className="pb-3 text-signal font-display text-lg">&times;</div>
+                <div className="hidden sm:block pb-3 text-signal font-display text-lg">&times;</div>
                 <div className="flex-1">
                   <label htmlFor="subject-b" className="block font-display text-[10px] text-dim tracking-[0.2em] mb-1.5 uppercase">Subject B</label>
                   <input
@@ -595,10 +595,35 @@ export function ConspiracyBoard() {
                   {error}
                 </motion.p>
               )}
+              {/* Mobile action button — visible only when right panel is hidden */}
+              <div className="md:hidden mt-3">
+                {phase === "input" ? (
+                  <button onClick={handleConnect} disabled={!topicA.trim() || !topicB.trim()}
+                    className="ops-button w-full">
+                    <span className="ops-button-led ops-button-led-green" />
+                    Connect the Dots
+                  </button>
+                ) : phase === "done" ? (
+                  <button onClick={handleReset} className="ops-button w-full">
+                    <span className="ops-button-led ops-button-led-green" />
+                    New Investigation
+                  </button>
+                ) : (phase === "broadcasting" || phase === "generating") ? (
+                  <button onClick={handleStop} className="ops-button ops-button-danger w-full">
+                    <span className="ops-button-led ops-button-led-red" />
+                    Cut Signal
+                  </button>
+                ) : (
+                  <div className="ops-button w-full opacity-60 cursor-wait">
+                    <span className="ops-button-led ops-button-led-yellow" />
+                    Scanning...
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Feed header */}
-            <div className="flex-shrink-0 px-6 py-1.5 bg-paper-dark/90 border-b border-stone-400/30 flex items-center gap-3">
+            <div className="flex-shrink-0 px-3 py-1.5 md:px-6 bg-paper-dark/90 border-b border-stone-400/30 flex items-center gap-3">
               <span className="font-display text-[10px] text-stone-700 tracking-[0.2em] uppercase">
                 {showDecrypted ? "Decrypted Feed" : "Intel Feed / Anomaly Reports"}
               </span>
@@ -624,7 +649,7 @@ export function ConspiracyBoard() {
             </div>
 
             {/* Feed content */}
-            <div ref={feedRef} className="flex-1 overflow-y-auto px-6 py-5 relative paper-bg scanline">
+            <div ref={feedRef} className="flex-1 overflow-y-auto px-3 py-3 md:px-6 md:py-5 relative paper-bg scanline">
               <AnimatePresence mode="wait">
                 {phase === "input" && !transcript.length && (
                   <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -758,7 +783,7 @@ export function ConspiracyBoard() {
           </div>
 
           {/* ─── RIGHT: OPERATIONS PANEL ─── */}
-          <div className="w-[220px] flex-shrink-0 flex flex-col border-l border-border bg-dark">
+          <div className="hidden md:flex w-[220px] flex-shrink-0 flex-col border-l border-border bg-dark">
             <div className="px-4 py-2 border-b border-border">
               <h2 className="font-display text-[10px] tracking-[0.2em] text-dim/60 uppercase">Operations</h2>
             </div>
@@ -840,13 +865,16 @@ export function ConspiracyBoard() {
         </div>
 
         {/* ═══ FOOTER ═══ */}
-        <footer className="flex-shrink-0 px-5 py-1.5 bg-dark/90 border-t border-border">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-[7px] text-muted/20 tracking-[0.2em]">TINFOIL v0.2 // UNCLASSIFIED</span>
-            <span className="font-mono text-[7px] text-muted/20 tracking-[0.2em]">FIRECRAWL + OPENAI + ELEVENLABS // #ELEVENHACKS 2026</span>
+        <footer className="flex-shrink-0 px-3 py-1 md:px-5 md:py-1.5 bg-dark/90 border-t border-border">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-mono text-[6px] md:text-[7px] text-muted/20 tracking-[0.15em] whitespace-nowrap">TINFOIL v0.2</span>
+            <span className="font-mono text-[6px] md:text-[7px] text-muted/20 tracking-[0.15em] whitespace-nowrap">
+              by{" "}<a href="https://x.com/debgotwired" target="_blank" rel="noopener noreferrer" className="underline hover:text-muted/30">@debgotwired</a>
+              {" "}// #ELEVENHACKS 2026
+            </span>
           </div>
-          <p className="font-mono text-[6px] text-muted/15 tracking-wider mt-0.5 text-center">
-            SATIRE ONLY — All conspiracies are AI-generated fiction. Sources are real, interpretations are intentionally absurd. Built for{" "}
+          <p className="font-mono text-[5px] md:text-[6px] text-muted/15 tracking-wider mt-0.5 text-center leading-relaxed">
+            SATIRE — AI-generated fiction. Sources real, interpretations absurd. Built for{" "}
             <a href="https://hacks.elevenlabs.io/hackathons/0" target="_blank" rel="noopener noreferrer" className="underline hover:text-muted/30">ElevenHacks 2026</a>.
             Not misinformation.
           </p>
