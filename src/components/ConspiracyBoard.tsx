@@ -109,14 +109,21 @@ export function ConspiracyBoard() {
   }, [transcript.length]);
 
   useEffect(() => {
-    if (feedRef.current) {
-      const el = feedRef.current;
-      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 150;
-      if (nearBottom) {
-        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-      }
-    }
-  }, [transcript]);
+    // Only auto-scroll while actively streaming content
+    if (phase !== "generating" && phase !== "broadcasting") return;
+    if (!feedRef.current) return;
+    // Wait for DOM to settle (Framer Motion animations shift layout)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = feedRef.current;
+        if (!el) return;
+        const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
+        if (nearBottom) {
+          el.scrollTop = el.scrollHeight;
+        }
+      });
+    });
+  }, [transcript, phase]);
 
   // Play a blob via Web Audio API or Audio element. Returns a Promise that resolves when playback ends.
   const playBlob = useCallback((blob: Blob): Promise<void> => {
@@ -426,7 +433,7 @@ export function ConspiracyBoard() {
     }
   }, [topicA, topicB, playBlob]);
 
-  const handleStop = useCallback(() => {
+  const handleStop = useCallback(async () => {
     abortRef.current = true;
     if (audioSourceRef.current) {
       try { audioSourceRef.current.stop(); } catch { /* already stopped */ }
@@ -442,6 +449,15 @@ export function ConspiracyBoard() {
     }
     setIsPlaying(false);
     setAudioBlobUrl(null);
+    // Merge whatever audio blobs we've collected so far
+    if (audioBlobsRef.current.length > 0) {
+      const parts = await Promise.all(
+        audioBlobsRef.current.map((b) => b.arrayBuffer())
+      );
+      const merged = parts.map((buf, i) => new Uint8Array(i === 0 ? buf : stripID3(buf)));
+      const combined = new Blob(merged, { type: "audio/mpeg" });
+      setAudioDownloadUrl(URL.createObjectURL(combined));
+    }
     setPhase("done");
   }, []);
 
