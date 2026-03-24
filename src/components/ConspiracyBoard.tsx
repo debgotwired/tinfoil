@@ -98,7 +98,11 @@ export function ConspiracyBoard() {
 
   useEffect(() => {
     if (feedRef.current) {
-      feedRef.current.scrollTop = feedRef.current.scrollHeight;
+      const el = feedRef.current;
+      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 150;
+      if (nearBottom) {
+        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+      }
     }
   }, [transcript]);
 
