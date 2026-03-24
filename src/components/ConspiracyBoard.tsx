@@ -49,6 +49,16 @@ function parseCitations(text: string): { clean: string; urls: string[] } {
   return { clean: clean.replace(/\s{2,}/g, " ").trim(), urls };
 }
 
+// Strip ID3v2 header from an MP3 ArrayBuffer (so concatenated files don't have headers mid-stream)
+function stripID3(buf: ArrayBuffer): ArrayBuffer {
+  const view = new Uint8Array(buf);
+  if (view[0] === 0x49 && view[1] === 0x44 && view[2] === 0x33) { // "ID3"
+    const size = (view[6] << 21) | (view[7] << 14) | (view[8] << 7) | view[9];
+    return buf.slice(10 + size);
+  }
+  return buf;
+}
+
 // Fetch TTS audio blob from the speak endpoint
 async function fetchTTSBlob(text: string): Promise<Blob> {
   const res = await fetch("/api/speak", {
@@ -79,12 +89,14 @@ export function ConspiracyBoard() {
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioBlobUrl, setAudioBlobUrl] = useState<string | null>(null);
+  const [audioDownloadUrl, setAudioDownloadUrl] = useState<string | null>(null);
   const feedRef = useRef<HTMLDivElement>(null);
   const inputBRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const abortRef = useRef(false);
+  const audioBlobsRef = useRef<Blob[]>([]);
 
   // Client-only timestamp (avoids hydration mismatch)
   const [clientTime, setClientTime] = useState<string | null>(null);
@@ -217,6 +229,9 @@ export function ConspiracyBoard() {
     setError(null);
     setIsPlaying(false);
     setAudioBlobUrl(null);
+    if (audioDownloadUrl) URL.revokeObjectURL(audioDownloadUrl);
+    setAudioDownloadUrl(null);
+    audioBlobsRef.current = [];
     abortRef.current = false;
 
     // Create AudioContext NOW during user gesture — unlocks audio for Chrome
@@ -324,6 +339,7 @@ export function ConspiracyBoard() {
                 // Fire TTS and start playing IN BACKGROUND — SSE continues reading
                 audioPlaybackPromise = (async () => {
                   const blob = await fetchTTSBlob(firstBatchText);
+                  audioBlobsRef.current.push(blob);
                   if (!abortRef.current) await playBlob(blob);
                 })();
               }
@@ -372,6 +388,7 @@ export function ConspiracyBoard() {
         if (secondTTSPromise) {
           setPhase("broadcasting");
           const secondBlob = await secondTTSPromise;
+          audioBlobsRef.current.push(secondBlob);
           if (abortRef.current) return;
           await playBlob(secondBlob);
         }
@@ -381,12 +398,22 @@ export function ConspiracyBoard() {
         const allText = completedParagraphs.join("\n\n");
         if (allText.trim()) {
           const blob = await fetchTTSBlob(allText);
+          audioBlobsRef.current.push(blob);
           if (abortRef.current) return;
           await playBlob(blob);
         }
       }
 
       if (!abortRef.current) {
+        // Merge collected audio blobs into a single downloadable MP3
+        if (audioBlobsRef.current.length > 0) {
+          const parts = await Promise.all(
+            audioBlobsRef.current.map((b) => b.arrayBuffer())
+          );
+          const merged = parts.map((buf, i) => new Uint8Array(i === 0 ? buf : stripID3(buf)));
+          const combined = new Blob(merged, { type: "audio/mpeg" });
+          setAudioDownloadUrl(URL.createObjectURL(combined));
+        }
         setPhase("done");
         setIsPlaying(false);
       }
@@ -428,7 +455,18 @@ export function ConspiracyBoard() {
     setCitedSources([]);
     setResearch(null);
     setError(null);
-  }, [handleStop]);
+    if (audioDownloadUrl) URL.revokeObjectURL(audioDownloadUrl);
+    setAudioDownloadUrl(null);
+    audioBlobsRef.current = [];
+  }, [handleStop, audioDownloadUrl]);
+
+  const handleSaveBroadcast = useCallback(() => {
+    if (!audioDownloadUrl) return;
+    const a = document.createElement("a");
+    a.href = audioDownloadUrl;
+    a.download = `tinfoil-${topicA.trim().replace(/\s+/g, "-")}-${topicB.trim().replace(/\s+/g, "-")}.mp3`;
+    a.click();
+  }, [audioDownloadUrl, topicA, topicB]);
 
   const handleDecryptLogs = useCallback(() => {
     setShowDecrypted((prev) => !prev);
@@ -596,7 +634,7 @@ export function ConspiracyBoard() {
                 </motion.p>
               )}
               {/* Mobile action button — visible only when right panel is hidden */}
-              <div className="md:hidden mt-3">
+              <div className="md:hidden mt-3 space-y-2">
                 {phase === "input" ? (
                   <button onClick={handleConnect} disabled={!topicA.trim() || !topicB.trim()}
                     className="ops-button w-full">
@@ -604,10 +642,18 @@ export function ConspiracyBoard() {
                     Connect the Dots
                   </button>
                 ) : phase === "done" ? (
-                  <button onClick={handleReset} className="ops-button w-full">
-                    <span className="ops-button-led ops-button-led-green" />
-                    New Investigation
-                  </button>
+                  <>
+                    <button onClick={handleReset} className="ops-button w-full">
+                      <span className="ops-button-led ops-button-led-green" />
+                      New Investigation
+                    </button>
+                    {audioDownloadUrl && (
+                      <button onClick={handleSaveBroadcast} className="ops-button w-full">
+                        <span className="ops-button-led ops-button-led-green" />
+                        Save Broadcast
+                      </button>
+                    )}
+                  </>
                 ) : (phase === "broadcasting" || phase === "generating") ? (
                   <button onClick={handleStop} className="ops-button ops-button-danger w-full">
                     <span className="ops-button-led ops-button-led-red" />
@@ -795,10 +841,18 @@ export function ConspiracyBoard() {
                   Connect the Dots
                 </button>
               ) : phase === "done" ? (
-                <button onClick={handleReset} className="ops-button w-full">
-                  <span className="ops-button-led ops-button-led-green" />
-                  New Investigation
-                </button>
+                <>
+                  <button onClick={handleReset} className="ops-button w-full">
+                    <span className="ops-button-led ops-button-led-green" />
+                    New Investigation
+                  </button>
+                  {audioDownloadUrl && (
+                    <button onClick={handleSaveBroadcast} className="ops-button w-full">
+                      <span className="ops-button-led ops-button-led-green" />
+                      Save Broadcast
+                    </button>
+                  )}
+                </>
               ) : (phase === "broadcasting" || phase === "generating") ? (
                 <button onClick={handleStop} className="ops-button ops-button-danger w-full">
                   <span className="ops-button-led ops-button-led-red" />
